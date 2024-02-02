@@ -7,6 +7,7 @@
 #include <netinet/in.h>
 
 #define BUFFERSIZE 1024
+#define MAXSIZE 4
 
 int main(int argc, char **argv) {
     if(argc != 2){
@@ -20,7 +21,7 @@ int main(int argc, char **argv) {
     time_t raw_time; // Time data
 
     // Create UDP socket
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sockfd < 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
@@ -58,10 +59,11 @@ int main(int argc, char **argv) {
 
         time(&raw_time);
 
+        // Convert time to RTF standard
         raw_time = htonl(raw_time + 2208988800UL);
 
         // Send time to client
-        sendto(sockfd, (const char *)&raw_time, sizeof(raw_time), 0, (const struct sockaddr *)&client_addr, len);
+        sendto(sockfd, (const char *)&raw_time, MAXSIZE, 0, (const struct sockaddr *)&client_addr, len);
 
         printf("Response sent to client\n");
     }

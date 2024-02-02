@@ -6,10 +6,27 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <ctype.h>
 
 #define BUFFER_SIZE 1024
 
 #define	PORT 8080
+
+// https://stackoverflow.com/questions/5309471/getting-file-extension-in-c
+char *get_filename_ext(const char *filename) {
+    const char *dot = strrchr(filename, '.');
+    if(!dot || dot == filename) return "";
+    return dot + 1;
+}
+
+void toLowerString(char *str)
+{
+    int len = strlen(str);
+    for(int i = 0; i < len; i++)
+    {
+        str[i] = tolower(str[i]);
+    }
+}
 
 int send_html(int socket)
 {
@@ -30,33 +47,41 @@ int send_html(int socket)
     char filename[100];
     sscanf(buffer, "GET /%s ", filename);
 
-    // Open the requested file
     FILE *file = fopen(filename, "r");
-    if (file == NULL) {
+    if (file == NULL || access(filename, F_OK) != 0) {
         // If file not found, return 404 Not Found response
         char not_found_response[] = "HTTP/1.1 404 Not Found\r\nContent-Length: 0\r\n\r\n";
         write(socket, not_found_response, strlen(not_found_response));
-    } else {
-        // If file found, calculate its size
-        fseek(file, 0, SEEK_END);
-        long file_size = ftell(file);
-        fseek(file, 0, SEEK_SET);
-
-        // Prepare the response headers with Content-Length
-        char ok_response[100];
-        snprintf(ok_response, sizeof(ok_response), "HTTP/1.1 200 OK\r\nContent-Length: %ld\r\n\r\n", file_size);
-        write(socket, ok_response, strlen(ok_response));
-
-        // Send file contents
-        while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
-            write(socket, buffer, bytes_read);
-        }
-
-        fclose(file);
+        close(socket); // Close the client socket
+        return -1;
     }
 
-    // Close the client socket
-    close(socket);
+    // If file found, calculate its size
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
+
+    char *ext = get_filename_ext(filename);
+    toLowerString(ext);
+    char content_type[100];
+    if (strcmp(ext, "html") == 0) {
+        strcpy(content_type, "Content-Type: text/html");
+    } else {
+        strcpy(content_type, "Content-Type: image/jpeg");
+    }
+
+    // Prepare the response headers with Content-Length
+    char ok_response[1000];
+    snprintf(ok_response, sizeof(ok_response), "HTTP/1.1 200 OK\r\n%s\r\nContent-Length: %ld\r\n\r\n", content_type, file_size);
+    write(socket, ok_response, strlen(ok_response));
+
+    // Send file contents
+    while ((bytes_read = fread(buffer, 1, BUFFER_SIZE, file)) > 0) {
+        write(socket, buffer, bytes_read);
+    }
+
+    fclose(file);
+    close(socket); // Close the client socket
     return 0;
 }
 

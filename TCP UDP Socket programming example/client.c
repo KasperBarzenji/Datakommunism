@@ -19,7 +19,7 @@ int main(int argc, char **argv) {
     struct sockaddr_in server_addr; // Server address struct
 	int port = atoi(argv[1]);
     
-    sockfd = socket(AF_INET, SOCK_DGRAM, 0);
+    sockfd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
     if (sockfd < 0) {
         perror("Socket creation failed");
         exit(EXIT_FAILURE);
