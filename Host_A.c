@@ -3,9 +3,9 @@
 
 
 // toggle = !toggle switches 0 to 1 and 1 to 0: timer = 0 false 1 true
-int toggle = 0, timer = 0, count = 1;
+int toggle = 0, timer = 0, count = 0;
 
-struct pkt *tempPacket; 
+struct pkt *tempPacket;
 
 /* Called from layer 5, passed the data to be sent to other side */
 void A_output(struct msg message) {
@@ -16,9 +16,9 @@ void A_output(struct msg message) {
   packet.acknum = toggle;
   strcpy(packet.payload, message.data);
   packet.checksum = checksum(&packet);
-  tempPacket[count-1] = packet;
-  tempPacket = (struct pkt*)realloc(tempPacket, count++);
-
+  tempPacket = (struct pkt*)realloc(tempPacket, (count + 1) * sizeof(struct pkt));
+  tempPacket[count] = packet;
+  count++;
   // if timer is false
   if (!timer) {
     timer = 1;
@@ -34,20 +34,38 @@ void A_input(struct pkt packet) {
   timer = 0;
   if (verify_checksum(&packet)) {
 
-    /* TODO FIXA FREE */
-    free(tempPacket);
-    
+    for (int i = 0; i < count; i++){
+      tempPacket[i] = tempPacket[i+1];
+    }
+
+    count--;
+    if(count > 0){
+      tempPacket = (struct pkt*)realloc(tempPacket, count * sizeof(struct pkt));
+
+      timer = 1;
+      tolayer3(A, tempPacket[0]);
+      starttimer(A, TIMEOUT);
+    }
+
+  } else if(count > 0){
+    timer = 1;
+    tolayer3(A, tempPacket[0]);
+    starttimer(A, TIMEOUT);
   }
 }
 
 /* Called when A's timer goes off */
 void A_timerinterrupt() {
-  /* TODO */
+  if(count > 0){
+    timer = 1;
+    tolayer3(A, tempPacket[0]);
+    starttimer(A, TIMEOUT);
+  }
 }  
 
 /* The following routine will be called once (only) before any other */
 /* Host A routines are called. You can use it to do any initialization */
 void A_init() {
   /* TODO */
-  tempPacket = (struct pkt*)calloc(count, sizeof(struct pkt));
+  tempPacket = (struct pkt*)malloc(count * sizeof(struct pkt));
 }

@@ -1,6 +1,9 @@
 #include "Sim_Engine.h"
 #include "Checksum.h"
+#include "Host_A.h"
 
+// toggle = !toggle switches 0 to 1 and 1 to 0
+int packID = 1;
 
 /* Called from layer 5, passed the data to be sent to other side */
 void B_output( struct msg message) {
@@ -10,7 +13,15 @@ void B_output( struct msg message) {
 /* Called from layer 3, when a packet arrives for layer 4 */
 void B_input(struct pkt packet) {
   /* TODO */
-  printf("Packet: %d output: %s", 0, packet.payload);
+  if(verify_checksum(&packet)){
+    tolayer5(B, packet.payload);
+    packID = !packID;
+  } else {
+    packet.seqnum = packID;
+    packet.acknum = !packID;
+    packet.checksum = checksum(&packet);
+  }
+  tolayer3(B, packet);
 }
 
 /* Called when B's timer goes off */
