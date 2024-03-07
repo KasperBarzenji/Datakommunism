@@ -13,15 +13,17 @@ void B_output( struct msg message) {
 /* Called from layer 3, when a packet arrives for layer 4 */
 void B_input(struct pkt packet) {
   /* TODO */
-  if(verify_checksum(&packet)){
-    tolayer5(B, packet.payload);
-    packID = !packID;
-  } else {
-    packet.seqnum = packID;
-    packet.acknum = !packID;
-    packet.checksum = checksum(&packet);
-  }
-  tolayer3(B, packet);
+ if(verify_checksum(packet) != 1) {
+		packet.seqnum = packID;
+		packet.acknum = !packID;
+		packet.checksum = checksum(packet);
+		tolayer3(B, packet);
+		return;
+	} else if (packID == packet.seqnum) {
+		tolayer5(B, packet.payload);
+		packID = !packID;
+	}
+	tolayer3(B, packet);
 }
 
 /* Called when B's timer goes off */

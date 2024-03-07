@@ -8,6 +8,8 @@ void A_output(struct msg message);
 void A_input(struct pkt packet);
 void A_timerinterrupt();
 void A_init();
+void alloc_packet(struct pkt packet);
+void dealloc_packet();
 
 #define A 0
 #define B 1
