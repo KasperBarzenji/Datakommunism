@@ -1,6 +1,0 @@
-{
-    "files.associations": {
-        "sim_engine.h": "c",
-        "limits.h": "c"
-    }
-}
